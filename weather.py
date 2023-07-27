@@ -33,12 +33,12 @@ for obj in icons:
 def refresh():
 	print("WARNING: SENDING GET REQUEST FOR WEATHER DATA.")
 	response = requests.get('https://api.open-meteo.com/v1/forecast?latitude=33.749&longitude=-84.388&hourly=temperature_2m,relativehumidity_2m,precipitation_probability,cloudcover&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&temperature_unit=fahrenheit&windspeed_unit=mph&precipitation_unit=inch&timezone=America%2FNew_York')
-	file_w = open('weather_data.json', 'w')
+	file_w = open('/home/mxs/RMatrix/weather_data.json', 'w')
 	json.dump(response.json(), file_w)
 
 def load():
 	global data
-	file_r = open('weather_data.json', 'r')
+	file_r = open('/home/mxs/RMatrix/weather_data.json', 'r')
 	data = json.load(file_r)
 
 def hourly():
@@ -106,7 +106,11 @@ def display():
 	nextSlide = False
 	Y = 30
 	infoX = 22
-	infoY = 14
+	infoY = 15
+	slidesColors = []
+	for item in range(6):
+		newColor = matrix_tools.randVisColor(100)
+		slidesColors.append(graphics.Color(newColor[0], newColor[1], newColor[2]))
 
 	while len(displaying) > 0:
 		for desc in displaying:
@@ -134,22 +138,39 @@ def display():
 		pos += 1
 
 		graphics.DrawLine(c, 0, 22, 64, 22, softWhite)
-		graphics.DrawText(c, font0507, 49, 7, softWhite, days[thisday])
 		if slide == 0:
-			graphics.DrawText(c, font0406, infoX, infoY, softWhite, "Information")
+			if datetime.datetime.now().hour < 12:
+				msg = "Good morning"
+			elif datetime.datetime.now().hour < 18:
+				msg = "Good afternoon"
+			else:
+				msg = "Good evening"
+			graphics.DrawText(c, font0406, 1, 9, slidesColors[0], msg)
 		elif slide == 1:
-			graphics.DrawText(c, font0406, infoX, infoY, softWhite, "Fiddles")
+			graphics.DrawText(c, font0507, 11, 9, slidesColors[1], datetime.datetime.now().strftime("%I:%M %p"))
+		elif slide == 2:
+			graphics.DrawText(c, font0507, 5, 9, slidesColors[2], datetime.datetime.now().strftime("%a, %m/%d"))
+		elif slide == 3:
+			graphics.DrawText(c, font0507, infoX, infoY, slidesColors[3], "Max temp: " + str(data['daily']['temperature_2m_max'][thisday]) + "F")
+		elif slide == 4:
+                        graphics.DrawText(c, font0507, infoX, infoY, slidesColors[4], "Min temp: " + str(data['daily']['temperature_2m_min'][thisday]) + "F")
+		elif slide == 5:
+			graphics.DrawText(c, font0507, infoX, infoY, slidesColors[5], "PP max: " + str(data['daily']['precipitation_probability_max'][thisday]) + "%")
 		if datetime.datetime.now().second%5 == 0:
 			if not nextSlide:
 				nextSlide = True
-				if slide < 1:
+				if slide < len(slidesColors)-1:
 					slide += 1
 				else:
 					slide = 0
 		else:
 			nextSlide = False
 
-		c.SetImage(icons[round(datetime.datetime.now().second/8)], 1,1)
+		if slide > 2:
+			graphics.DrawText(c, font0507, 49, 7, softWhite, days[thisday])
+			c.SetImage(icons[round(datetime.datetime.now().second/8)], 1,1)
+		else:
+			graphics.DrawText(c, font0406, 1, 19, softWhite, days[thisday] + ", hourly:")
 
 		c = m.SwapOnVSync(c)
 		sleep(0.05)
