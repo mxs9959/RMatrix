@@ -14,6 +14,7 @@ font0507.LoadFont('/home/mxs/rpi-rgb-led-matrix/fonts/5x7.bdf')
 font0406 = graphics.Font()
 font0406.LoadFont('/home/mxs/rpi-rgb-led-matrix/fonts/4x6.bdf')
 softWhite = graphics.Color(200, 200, 200)
+custom = ""
 
 s = '/home/mxs/RMatrix/thumbnails/'
 icons = [
@@ -29,6 +30,16 @@ PIL.Image.open(s+'stormy.png')
 for obj in icons:
 	obj.thumbnail((20,20), PIL.Image.ANTIALIAS)
 	icons[icons.index(obj)] = obj.convert('RGB')
+ref = [
+[0],
+[1,2],
+[3],
+[51,53,55,61,80],
+[63,65,81,82],
+[56,57,66,67,71,73,75,77,85,86],
+[45,48],
+[95,96,99]
+]
 
 def refresh():
 	print("WARNING: SENDING GET REQUEST FOR WEATHER DATA.")
@@ -41,7 +52,7 @@ def load():
 	file_r = open('/home/mxs/RMatrix/weather_data.json', 'r')
 	data = json.load(file_r)
 
-def hourly():
+def init():
 	global ticker
 	global days
 	ticker = []
@@ -67,6 +78,7 @@ def hourly():
 				day = "SAT"
 			elif day == 6:
 				day = "SUN"
+			day += " " + time[5:7] + "/" + time[8:10]
 			days.append(day)
 			hr = "12AM: "
 		elif hr == 12:
@@ -106,9 +118,12 @@ def display():
 	nextSlide = False
 	Y = 30
 	infoX = 22
-	infoY = 15
+	infoY = 17
 	slidesColors = []
 	for item in range(6):
+		newColor = matrix_tools.randVisColor(100)
+		slidesColors.append(graphics.Color(newColor[0], newColor[1], newColor[2]))
+	if custom != "":
 		newColor = matrix_tools.randVisColor(100)
 		slidesColors.append(graphics.Color(newColor[0], newColor[1], newColor[2]))
 
@@ -151,11 +166,13 @@ def display():
 		elif slide == 2:
 			graphics.DrawText(c, font0507, 5, 9, slidesColors[2], datetime.datetime.now().strftime("%a, %m/%d"))
 		elif slide == 3:
-			graphics.DrawText(c, font0507, infoX, infoY, slidesColors[3], "Max temp: " + str(data['daily']['temperature_2m_max'][thisday]) + "F")
+			graphics.DrawText(c, font0507, infoX, infoY, slidesColors[3], "H: " + str(data['daily']['temperature_2m_max'][thisday]) + "F")
 		elif slide == 4:
-                        graphics.DrawText(c, font0507, infoX, infoY, slidesColors[4], "Min temp: " + str(data['daily']['temperature_2m_min'][thisday]) + "F")
+                        graphics.DrawText(c, font0507, infoX, infoY, slidesColors[4], "L: " + str(data['daily']['temperature_2m_min'][thisday]) + "F")
 		elif slide == 5:
-			graphics.DrawText(c, font0507, infoX, infoY, slidesColors[5], "PP max: " + str(data['daily']['precipitation_probability_max'][thisday]) + "%")
+			graphics.DrawText(c, font0507, infoX, infoY, slidesColors[5], "PPM: " + str(data['daily']['precipitation_probability_max'][thisday]) + "%")
+		else:
+			graphics.DrawText(c, font0406, 1, 9, slidesColors[6], custom)
 		if datetime.datetime.now().second%5 == 0:
 			if not nextSlide:
 				nextSlide = True
@@ -166,11 +183,15 @@ def display():
 		else:
 			nextSlide = False
 
-		if slide > 2:
-			graphics.DrawText(c, font0507, 49, 7, softWhite, days[thisday])
-			c.SetImage(icons[round(datetime.datetime.now().second/8)], 1,1)
+		if slide > 2 and slide < 6:
+			graphics.DrawText(c, font0507, 39, 7, softWhite, days[thisday][4:9])
+			code = data['daily']['weathercode'][thisday]
+			for cat in ref:
+				if code in cat:
+					c.SetImage(icons[ref.index(cat)], 1,1)
+					break
 		else:
-			graphics.DrawText(c, font0406, 1, 19, softWhite, days[thisday] + ", hourly:")
+			graphics.DrawText(c, font0406, 1, 21, softWhite, days[thisday] + ":")
 
 		c = m.SwapOnVSync(c)
 		sleep(0.05)
@@ -178,12 +199,12 @@ def display():
 
 if __name__ == '__main__':
 	print("Welcome to Max Scholle's Weather Display.")
-	print("Using work from hzeller on Github and using weather data from OpenMeteo.\n")
-	update = input("Would you like to update the weather data now? y/n ")
-	if update == 'y':
+	print("Using work from hzeller on Github and using weather data from OpenMeteo. Weather icons from Sihan Liu.\n")
+	if input("Would you like to update the weather data now? y/n ") == 'y':
 		refresh()
-	print("\nLoading and interpreting data...")
+	print("\nLoading and interpreting data...\n")
 	load()
-	hourly()
-	print("Displaying the weather...")
+	init()
+	custom = input("If you would like a custom message to display, enter it now. Otherwise, write nothing. ")
+	print("\nDisplaying the weather...")
 	display()
