@@ -7,6 +7,7 @@ import PIL
 import matrix_tools
 from rgbmatrix import graphics
 
+ESC = False
 m = matrix_tools.getMatrix()
 c = m.CreateFrameCanvas()
 font0507 = graphics.Font()
@@ -104,6 +105,8 @@ def init():
 def display():
 	global thisday
 	global c
+	global ESC
+	ESC = False
 	color1 = matrix_tools.randVisColor(100)
 	color2 = matrix_tools.randVisColor(100)
 	colors = [graphics.Color(color1[0], color1[1], color1[2]), graphics.Color(color2[0], color2[1], color2[2])]
@@ -127,7 +130,7 @@ def display():
 		newColor = matrix_tools.randVisColor(100)
 		slidesColors.append(graphics.Color(newColor[0], newColor[1], newColor[2]))
 
-	while len(displaying) > 0:
+	while not ESC and len(displaying) > 0:
 		for desc in displaying:
 			if desc[1]-pos == 1 and desc[0]%2 == 0:
 				if displaying.index(desc) > 1:
@@ -137,7 +140,7 @@ def display():
 			else:
 				length = graphics.DrawText(c, font0507, desc[1]-pos, Y, colors[desc[0]%2], ticker[desc[0]])
 				desc[2] = length
-			if displaying.index(desc) == len(displaying)-1 and desc[1]+length-pos < 64:
+			if displaying.index(desc) == len(displaying)-1 and desc[1]+length-pos < 64 and desc[0]+1 < len(ticker):
 				displaying.append([desc[0]+1, desc[1] + length, 0])
 				if ticker[desc[0]+1] == '12AM: ':
 					thisday += 1
@@ -196,6 +199,9 @@ def display():
 		c = m.SwapOnVSync(c)
 		sleep(0.05)
 		m.Clear()
+
+	if not ESC:
+		display()
 
 if __name__ == '__main__':
 	print("Welcome to Max Scholle's Weather Display.")
